@@ -11,7 +11,7 @@ const Subleq = struct {
         return sl;
     }
 
-    pub fn exec(self: *Self, entry_point: usize) void {
+    pub fn exec(self: *Self, entry_point: usize) usize {
         self.pc = entry_point;
         while (self.pc + 3 <= self.ram.len) {
             const a = @intCast(usize, self.ram[self.pc]);
@@ -20,13 +20,14 @@ const Subleq = struct {
 
             self.ram[b] = self.ram[b] - self.ram[a];
             if (self.ram[b] <= 0) {
-                if (c < 0) return;
+                if (c < 0) return self.pc + 2;
                 self.pc = @intCast(usize, c);
                 continue;
             }
 
             self.pc += 3;
         }
+        return self.pc;
     }
 };
 
@@ -40,13 +41,13 @@ pub fn main() anyerror!void {
 
         0, 0, // ZERO and ACCUM
         10, 20, // DATA 2 and 3
-        3, 2, 6, // INST subleq 3, 2, 6
+        3, 2, -1, // INST subleq 3, 2, 6
     };
     var sl = try Subleq.init(std.heap.page_allocator, prog);
-    sl.exec(4);
+    const pc = sl.exec(4);
 
     const stdout = std.io.getStdOut().writer();
-    try stdout.print("pc: {}\n", .{sl.pc});
+    try stdout.print("pc: {}\n", .{pc});
 
     std.log.info("All your instructions are belong to us.", .{});
 }
