@@ -13,7 +13,7 @@ const Subleq = struct {
 
     pub fn exec(self: *Self, entry_point: usize) void {
         self.pc = entry_point;
-        while (self.pc + 2 <= self.ram.len) {
+        while (self.pc + 3 <= self.ram.len) {
             const a = @intCast(usize, self.ram[self.pc]);
             const b = @intCast(usize, self.ram[self.pc + 1]);
             const c = self.ram[self.pc + 2];
