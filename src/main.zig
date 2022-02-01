@@ -16,11 +16,12 @@ const Subleq = struct {
         while (self.pc + 2 <= self.ram.len) {
             const a = @intCast(usize, self.ram[self.pc]);
             const b = @intCast(usize, self.ram[self.pc + 1]);
-            const c = @intCast(usize, self.ram[self.pc + 2]);
+            const c = self.ram[self.pc + 2];
 
             self.ram[b] = self.ram[b] - self.ram[a];
             if (self.ram[b] <= 0) {
-                self.pc = c;
+                if (c < 0) return;
+                self.pc = @intCast(usize, c);
                 continue;
             }
 
@@ -42,7 +43,7 @@ pub fn main() anyerror!void {
         3, 2, 6, // INST subleq 3, 2, 6
     };
     var sl = try Subleq.init(std.heap.page_allocator, prog);
-    sl.exec(3);
+    sl.exec(4);
 
     const stdout = std.io.getStdOut().writer();
     try stdout.print("pc: {}\n", .{sl.pc});
