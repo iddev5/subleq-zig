@@ -4,11 +4,27 @@ const Subleq = struct {
     pc: usize = 0,
     ram: []i8 = undefined,
 
+    pub const Options = struct {
+        mem_size: usize = 1024 * 1024, // 1 MB
+        endian: std.builtin.Endian = .Big,
+        address_size: AddrSize = .@"64", // 64-bit addresses
+
+        pub const AddrSize = enum {
+            @"16",
+            @"32",
+            @"64",
+        };
+    };
+
     const Self = @This();
-    pub fn init(allocator: std.mem.Allocator, prog: []const i8) !Self {
-        var sl = Self{ .ram = try allocator.alloc(i8, prog.len) };
-        std.mem.copy(i8, sl.ram, prog);
-        return sl;
+    pub fn init(allocator: std.mem.Allocator, options: Options) !Self {
+        return Self{
+            .ram = try allocator.alloc(i8, options.mem_size),
+        };
+    }
+
+    pub fn loadProgram(self: Self, prog: []const i8, loc: usize) void {
+        std.mem.copy(i8, self.ram[loc..prog.len], prog);
     }
 
     pub fn exec(self: *Self, entry_point: usize) usize {
@@ -43,7 +59,8 @@ pub fn main() anyerror!void {
         10, 20, // DATA 2 and 3
         3, 2, -1, // INST subleq 3, 2, 6
     };
-    var sl = try Subleq.init(std.heap.page_allocator, prog);
+    var sl = try Subleq.init(std.heap.page_allocator, .{});
+    sl.loadProgram(prog, 0);
     const pc = sl.exec(4);
 
     const stdout = std.io.getStdOut().writer();
