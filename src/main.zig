@@ -2,7 +2,7 @@ const std = @import("std");
 
 const Subleq = struct {
     pc: usize = 0,
-    ram: []i8 = undefined,
+    ram: []u8 = undefined,
 
     pub const Options = struct {
         mem_size: usize = 1024 * 1024, // 1 MB
@@ -19,12 +19,12 @@ const Subleq = struct {
     const Self = @This();
     pub fn init(allocator: std.mem.Allocator, options: Options) !Self {
         return Self{
-            .ram = try allocator.alloc(i8, options.mem_size),
+            .ram = try allocator.alloc(u8, options.mem_size),
         };
     }
 
-    pub fn loadProgram(self: Self, prog: []const i8, loc: usize) void {
-        std.mem.copy(i8, self.ram[loc..prog.len], prog);
+    pub fn loadProgram(self: Self, prog: []const u8, loc: usize) void {
+        std.mem.copy(u8, self.ram[loc..prog.len], prog);
     }
 
     pub fn exec(self: *Self, entry_point: usize) usize {
@@ -34,14 +34,20 @@ const Subleq = struct {
             const b = @intCast(usize, self.ram[self.pc + 1]);
             const c = self.ram[self.pc + 2];
 
-            self.ram[b] = self.ram[b] - self.ram[a];
-            if (self.ram[b] <= 0) {
-                if (c < 0) return self.pc + 2;
+            const a_mem = @intCast(isize, self.ram[a]);
+            const b_mem = @intCast(isize, self.ram[b]);
+
+            const result = b_mem - a_mem;
+            if (result <= 0) {
+                if (@bitCast(i8, c) < 0)
+                    return self.pc + 2;
+
                 self.pc = @intCast(usize, c);
-                continue;
+            } else {
+                self.pc += 3;
             }
 
-            self.pc += 3;
+            self.ram[b] = @truncate(u8, @bitCast(usize, result));
         }
         return self.pc;
     }
@@ -57,7 +63,7 @@ pub fn main() anyerror!void {
 
         0, 0, // ZERO and ACCUM
         10, 20, // DATA 2 and 3
-        3, 2, -1, // INST subleq 3, 2, 6
+        3, 2, 255, // INST subleq 3, 2, 255_u8 == -1_i8
     };
     var sl = try Subleq.init(std.heap.page_allocator, .{});
     sl.loadProgram(prog, 0);
