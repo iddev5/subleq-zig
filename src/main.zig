@@ -24,6 +24,9 @@ const Subleq = struct {
 
     const Self = @This();
     pub fn init(allocator: std.mem.Allocator, options: Options) !Self {
+        if (@enumToInt(options.address_size) > @sizeOf(usize))
+            return error.UnsupportedCpu;
+
         return Self{
             .ram = try allocator.alloc(u8, options.mem_size),
             .options = options,
