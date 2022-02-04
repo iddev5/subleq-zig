@@ -1,4 +1,5 @@
 const std = @import("std");
+const mem = std.mem;
 
 const Subleq = struct {
     pc: usize = 0,
@@ -12,11 +13,11 @@ const Subleq = struct {
         model_name: []const u8 = "none",
 
         pub fn fromModel(name: []const u8) !Options {
-            if (std.mem.eql(u8, name, "dawnos-compat")) {
+            if (mem.eql(u8, name, "dawnos-compat")) {
                 return Options{ .model_name = "dawnos-compat" };
-            } else if (std.mem.eql(u8, name, "zleq32")) {
+            } else if (mem.eql(u8, name, "zleq32")) {
                 return Options{ .endian = .Little, .address_size = .@"32", .model_name = "zleq32" };
-            } else if (std.mem.eql(u8, name, "zleq64")) {
+            } else if (mem.eql(u8, name, "zleq64")) {
                 return Options{ .endian = .Little, .model_name = "zleq64" };
             }
 
@@ -50,17 +51,17 @@ const Subleq = struct {
         std.mem.copy(u8, self.ram[loc..prog.len], prog);
     }
 
-    fn readInt(self: *Self, comptime T: type, mem: []const u8) T {
-        return std.mem.readIntSlice(T, mem, self.options.endian);
+    fn readInt(self: *Self, comptime T: type, memory: []const u8) T {
+        return std.mem.readIntSlice(T, memory, self.options.endian);
     }
 
     fn getMem(self: *Self, pc: usize) usize {
-        const mem = self.ram[pc .. pc + self.options.address_size.getBytes()];
+        const memory = self.ram[pc .. pc + self.options.address_size.getBytes()];
         return switch (self.options.address_size) {
-            .@"8" => self.readInt(u8, mem),
-            .@"16" => self.readInt(u16, mem),
-            .@"32" => self.readInt(u32, mem),
-            .@"64" => self.readInt(u64, mem),
+            .@"8" => self.readInt(u8, memory),
+            .@"16" => self.readInt(u16, memory),
+            .@"32" => self.readInt(u32, memory),
+            .@"64" => self.readInt(u64, memory),
         };
     }
 
