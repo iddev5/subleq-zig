@@ -9,6 +9,19 @@ const Subleq = struct {
         mem_size: usize = 1024 * 1024, // 1 MB
         endian: std.builtin.Endian = .Big, // Big endian by default
         address_size: AddrSize = .@"64", // 64-bit addresses
+        model_name: []const u8 = "none",
+
+        pub fn fromModel(name: []const u8) !Options {
+            if (std.mem.eql(u8, name, "dawnos-compat")) {
+                return Options{ .model_name = "dawnos-compat" };
+            } else if (std.mem.eql(u8, name, "zleq32")) {
+                return Options{ .endian = .Little, .address_size = .@"32", .model_name = "zleq32" };
+            } else if (std.mem.eql(u8, name, "zleq64")) {
+                return Options{ .endian = .Little, .model_name = "zleq64" };
+            }
+
+            return error.UnknownSubleqCpuModel;
+        }
 
         pub const AddrSize = enum(u4) {
             @"8" = 1,
