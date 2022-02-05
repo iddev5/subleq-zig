@@ -1,10 +1,14 @@
 const std = @import("std");
 const mem = std.mem;
+const Allocator = std.mem.Allocator;
+const Sdl = @import("sdl2");
 
 const Subleq = struct {
     pc: usize = 0,
     ram: []u8 = undefined,
     options: Options,
+    allocator: Allocator,
+    window: ?Sdl.Window = undefined,
 
     pub const Options = struct {
         mem_size: usize = 1024 * 1024, // 1 MB
@@ -37,14 +41,33 @@ const Subleq = struct {
     };
 
     const Self = @This();
-    pub fn init(allocator: std.mem.Allocator, options: Options) !Self {
+    pub fn init(allocator: Allocator, options: Options) !Self {
         if (@enumToInt(options.address_size) > @sizeOf(usize))
             return error.UnsupportedCpu;
 
-        return Self{
+        var self = Self{
             .ram = try allocator.alloc(u8, options.mem_size),
             .options = options,
+            .allocator = allocator,
         };
+
+        if (mem.eql(u8, options.model_name, "dawnos-compat")) {
+            self.window = try Sdl.createWindow(
+                "subleq-zig",
+                .{ .centered = .{} },
+                .{ .centered = .{} },
+                800,
+                600,
+                .{ .shown = true },
+            );
+        }
+
+        return self;
+    }
+
+    pub fn deinit(self: *Self) void {
+        if (self.window) |window| window.destroy();
+        self.allocator.free(self.ram);
     }
 
     pub fn loadProgram(self: Self, prog: []const u8, loc: usize) void {
@@ -101,6 +124,9 @@ const Subleq = struct {
 };
 
 pub fn main() anyerror!void {
+    try Sdl.init(.{ .video = true });
+    defer Sdl.quit();
+
     const prog = &.{
         // subleq2 a, b (a=2, b=3)
         // 1, 2, 3,
@@ -112,7 +138,9 @@ pub fn main() anyerror!void {
         10, 20, // DATA 2 and 3
         3, 2, 255, // INST subleq 3, 2, 255_u8 == -1_i8
     };
-    var sl = try Subleq.init(std.heap.page_allocator, .{ .address_size = .@"8" });
+    const options = try Subleq.Options.fromModel("dawnos-compat");
+    var sl = try Subleq.init(std.heap.page_allocator, options);
+    defer sl.deinit();
     sl.loadProgram(prog, 0);
     const pc = sl.exec(4);
 

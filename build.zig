@@ -1,4 +1,5 @@
 const std = @import("std");
+const Sdl = @import("deps/SDL.zig/Sdk.zig");
 
 pub fn build(b: *std.build.Builder) void {
     // Standard target options allows the person running `zig build` to choose
@@ -11,9 +12,13 @@ pub fn build(b: *std.build.Builder) void {
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     const mode = b.standardReleaseOptions();
 
+    const sdk = Sdl.init(b);
+
     const exe = b.addExecutable("subleq-zig", "src/main.zig");
     exe.setTarget(target);
     exe.setBuildMode(mode);
+    sdk.link(exe, .dynamic);
+    exe.addPackage(sdk.getWrapperPackage("sdl2"));
     exe.install();
 
     const run_cmd = exe.run();
